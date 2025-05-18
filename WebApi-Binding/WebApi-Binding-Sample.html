@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Sales for 1997</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        /* Custom font and body styling */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font as preferred */
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem; /* Add padding for smaller screens */
+        }
+        /* Styling for the chart container */
+        #chartContainer {
+            background-color: #ffffff; /* White background for the chart card */
+            padding: 2rem; /* Padding inside the card */
+            border-radius: 0.75rem; /* Rounded corners for the card */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Shadow for depth */
+            width: 100%;
+            max-width: 900px; /* Max width for larger screens */
+        }
+        /* Title styling */
+        .chart-title {
+            font-size: 1.875rem; /* Corresponds to Tailwind's text-3xl */
+            font-weight: 600; /* Semi-bold */
+            color: #1f2937; /* Dark gray text */
+            margin-bottom: 1.5rem; /* Space below the title */
+            text-align: center;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            #chartContainer {
+                padding: 1rem;
+            }
+            .chart-title {
+                font-size: 1.5rem; /* text-2xl for smaller screens */
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="chartContainer">
+        <h1 class="chart-title">Category Sales - 1997</h1>
+        <div id="salesChart"></div>
+    </div>
+
+    <script>
+        // Wait for the DOM to be fully loaded before executing script
+        document.addEventListener("DOMContentLoaded", function() {
+            // API endpoint URL
+            const apiUrl = "https://northwindcloud.azurewebsites.net/api/category_sales_for_1997";
+            const yAxisIncrement = 25000; // Desired Y-axis increment
+
+            // Async function to fetch and render chart data
+            async function renderChart() {
+                try {
+                    // Fetch data from the API
+                    const response = await fetch(apiUrl);
+                    // Check if the response is successful
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    // Parse the JSON data
+                    const data = await response.json();
+
+                    // Process data for ApexCharts
+                    // Extract category names for the x-axis categories
+                    const categories = data.map(item => item.categoryName);
+                    // Extract category sales for the series data
+                    const seriesData = data.map(item => parseFloat(item.categorySales.toFixed(2)));
+
+                    let yAxisFinalMax = yAxisIncrement; // Default to one increment if no data or all zero
+                    let tickAmountForYAxis;
+
+                    if (seriesData.length > 0) {
+                        const maxValue = Math.max(...seriesData);
+                        if (maxValue > 0) {
+                            // Add a buffer (e.g., 20%) to ensure data labels fit comfortably
+                            const bufferedMax = maxValue * 1.20;
+                            // Round this bufferedMax up to the nearest multiple of yAxisIncrement
+                            yAxisFinalMax = Math.ceil(bufferedMax / yAxisIncrement) * yAxisIncrement;
+                        } else {
+                             // If max value is 0 or less, set max to one increment
+                            yAxisFinalMax = yAxisIncrement;
+                        }
+                    }
+                    // Calculate the number of ticks needed for the desired increment
+                    tickAmountForYAxis = yAxisFinalMax / yAxisIncrement;
+
+
+                    // ApexCharts options configuration
+                    const options = {
+                        chart: {
+                            type: 'bar', // Specify chart type as bar
+                            height: 450, // Height of the chart
+                            toolbar: {
+                                show: true, // Show toolbar (zoom, pan, download)
+                                tools: {
+                                    download: true,
+                                    selection: true,
+                                    zoom: true,
+                                    zoomin: true,
+                                    zoomout: true,
+                                    pan: true,
+                                }
+                            },
+                            animations: {
+                                enabled: true, // Enable animations for a smoother experience
+                                easing: 'easeinout',
+                                speed: 800,
+                                animateGradually: {
+                                    enabled: true,
+                                    delay: 150
+                                },
+                                dynamicAnimation: {
+                                    enabled: true,
+                                    speed: 350
+                                }
+                            }
+                        },
+                        series: [{
+                            name: 'Category Sales', // Name of the series
+                            data: seriesData // Data for the series
+                        }],
+                        xaxis: {
+                            categories: categories, // Categories for the x-axis
+                            labels: {
+                                style: {
+                                    colors: '#4b5563', // Gray color for x-axis labels
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yaxis: {
+                            min: 0, // Ensure Y-axis starts at 0
+                            max: yAxisFinalMax, // Set the calculated final max for Y-axis
+                            tickAmount: tickAmountForYAxis, // Set the number of ticks
+                            forceNiceScale: true, // Helps ensure nice intervals, works with tickAmount
+                            title: {
+                                text: 'Sales (USD)', // Title for the y-axis
+                                style: {
+                                    color: '#4b5563',
+                                    fontSize: '14px',
+                                    fontWeight: 500
+                                }
+                            },
+                            labels: {
+                                style: {
+                                    colors: '#4b5563', // Gray color for y-axis labels
+                                    fontSize: '12px'
+                                },
+                                formatter: function (value) { // Format y-axis labels with "K" for thousands
+                                    if (value >= 1000) {
+                                        // Divide by 1000 and append 'K'.
+                                        // Use toFixed(0) to remove any potential decimal places after division if the original number wasn't a perfect thousand.
+                                        // For example, if a tick was 25500, it would become 25.5K. If you want 26K, use Math.round or Math.ceil.
+                                        // For exact increments of 25000, this should be fine.
+                                        return "$" + (value / 1000).toFixed(0) + "K";
+                                    }
+                                    return "$" + value.toFixed(0); // For values less than 1000 (e.g., $0)
+                                }
+                            }
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false, // Vertical bars
+                                columnWidth: '60%', // Width of the bars
+                                borderRadius: 5, // Rounded corners for bars
+                                dataLabels: {
+                                    position: 'top', // Position data labels on top of bars
+                                },
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true, // Enable data labels
+                            formatter: function (val) { // Format data labels as currency
+                                return "$" + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            },
+                            offsetY: -20, // Offset for data labels
+                            style: {
+                                fontSize: '12px',
+                                colors: ["#304758"] // Color for data labels
+                            }
+                        },
+                        colors: ['#3b82f6'], // Color for the bars (Tailwind blue-500)
+                        title: {
+                            text: 'Sales Performance by Category in 1997',
+                            align: 'center',
+                            margin: 20,
+                            style: {
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                color: '#1f2937'
+                            }
+                        },
+                        tooltip: {
+                            theme: 'dark', // Dark theme for tooltips
+                            y: {
+                                formatter: function (val) {
+                                    return "$" + val.toLocaleString() + " USD" // Format tooltip value
+                                }
+                            }
+                        },
+                        grid: {
+                            borderColor: '#e5e7eb', // Light gray for grid lines
+                            row: {
+                                colors: ['#f9fafb', 'transparent'], // Alternating row colors
+                                opacity: 0.5
+                            },
+                        },
+                        responsive: [{
+                            breakpoint: 768, // Breakpoint for mobile devices
+                            options: {
+                                plotOptions: {
+                                    bar: {
+                                        columnWidth: '80%'
+                                    }
+                                },
+                                chart: {
+                                    height: 350
+                                },
+                                yaxis: {
+                                    title: {
+                                        text: 'Sales (USD)',
+                                         style: {
+                                            fontSize: '12px',
+                                        }
+                                    },
+                                     labels: {
+                                        style: {
+                                            fontSize: '10px'
+                                        }
+                                        // Note: The K formatting will also apply to responsive Y-axis labels
+                                    }
+                                },
+                                xaxis: {
+                                     labels: {
+                                        style: {
+                                            fontSize: '10px'
+                                        }
+                                    }
+                                },
+                                dataLabels: {
+                                    style: {
+                                        fontSize: '10px',
+                                    },
+                                    offsetY: -15,
+                                }
+                            }
+                        }]
+                    };
+
+                    // Create a new ApexCharts instance
+                    const chart = new ApexCharts(document.querySelector("#salesChart"), options);
+                    // Render the chart
+                    chart.render();
+
+                } catch (error) {
+                    // Log and display any errors
+                    console.error("Failed to fetch or render chart:", error);
+                    document.querySelector("#salesChart").innerHTML = `
+                        <p class="text-red-500 text-center">
+                            Failed to load chart data. Please try again later. <br>
+                            Error: ${error.message}
+                        </p>`;
+                }
+            }
+
+            // Call the function to render the chart
+            renderChart();
+        });
+    </script>
+</body>
+</html>
