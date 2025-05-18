@@ -1,229 +1,218 @@
 <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Data Storytelling&colon; Best Practices for Engaging Visualizations</title>
-            <style>
-/* From extension vscode.github */
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Annotated Revenue Story – Full‑Screen (95%)</title>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <style>
+    html, body { margin: 0; height: 96%; width: 100%; display: flex; flex-direction: column; }
+    header { padding: 12px 24px 0; }
+    h2   { margin: 0 0 4px 0; font-family: system-ui, sans-serif; font-size: 1.5rem; }
+    p    { margin: 0 0 8px 0; font-family: system-ui, sans-serif; color: #555; }
+    #chart-wrapper { flex: 1 1 auto; display: flex; justify-content: center; align-items: center; }
+    #revenue { height: 90%; width: 95%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>Annotated Revenue Story (Targets & Seasonal Events)</h2>
+    <p>Interact with the toolbar (top‑right) to zoom or save the chart; annotations explain key events.</p>
+  </header>
+  <div id="chart-wrapper">
+    <div id="revenue"></div>
+  </div>
 
-.vscode-dark img[src$=\#gh-light-mode-only],
-.vscode-light img[src$=\#gh-dark-mode-only],
-.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
-.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
-	display: none;
-}
+  <script type="application/json" id="data-json">
+    {
+      "seriesData": [
+        { "date": "2025-01-01", "value": 18000 },
+        { "date": "2025-02-01", "value": 21300 },
+        { "date": "2025-03-01", "value": 23800 },
+        { "date": "2025-04-01", "value": 22800 },
+        { "date": "2025-05-01", "value": 23600 },
+        { "date": "2025-06-01", "value": 25000 },
+        { "date": "2025-07-01", "value": 25800 },
+        { "date": "2025-08-01", "value": 26600 },
+        { "date": "2025-09-01", "value": 28600 },
+        { "date": "2025-10-01", "value": 33600 },
+        { "date": "2025-11-01", "value": 34400 },
+        { "date": "2025-12-01", "value": 35200 }
+      ],
+      "events": {
+        "freemiumLaunch": "2025-02-14",
+        "schoolStart": ["2025-08-25", "2025-09-05"],
+        "blackFriday": ["2025-10-15", "2025-12-05"],
+        "siteOutage": "2025-03-01"
+      }
+    }
+  </script>
 
-</style>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
-<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
-<style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
-                font-size: 14px;
-                line-height: 1.6;
+  <script type="module">
+    /* ------------------------------------------------------------
+     * Read data from embedded JSON script
+     * ----------------------------------------------------------*/
+    const jsonData = JSON.parse(document.getElementById('data-json').textContent);
+
+    const seriesData = jsonData.seriesData.map(item => [new Date(item.date).getTime(), item.value]);
+    const events = {
+      freemiumLaunch: new Date(jsonData.events.freemiumLaunch).getTime(),
+      schoolStart: jsonData.events.schoolStart.map(date => new Date(date).getTime()),
+      blackFriday: jsonData.events.blackFriday.map(date => new Date(date).getTime()),
+      siteOutage: new Date(jsonData.events.siteOutage).getTime()
+    };
+
+    /* Helper to get Y‑value for outage */
+    const outageY = seriesData.find(([d]) => d === events.siteOutage)?.[1];
+
+    /* ------------------------------------------------------------
+     * Render chart (95% viewport) with outlined outage marker
+     * ----------------------------------------------------------*/
+    const chart = new ApexCharts(document.querySelector('#revenue'), {
+      series: [
+        {
+          name: 'Revenue',
+          data: seriesData
+        }
+      ],
+      chart: {
+        type: 'line', // Use 'line' to apply threshold-based coloring
+        height: '100%',
+        width: '100%',
+        toolbar: { 
+          show: true, // Enable the toolbar
+          tools: {
+            download: true, // Allow downloading the chart
+            selection: true, // Enable selection tool
+            zoom: true, // Enable zooming
+            zoomin: true, // Enable zoom-in
+            zoomout: true, // Enable zoom-out
+            pan: true, // Enable panning
+            reset: true // Enable reset zoom
+          },
+          autoSelected: 'zoom' // Default selected tool
+        },
+        zoom: { enabled: true }, // Enable zoom functionality
+        animations: { enabled: true },
+        padding: { left: 20, top: 20 } // Add padding to the left to align the chart with the labels
+      },
+      stroke: { width: 3, curve: 'smooth' },
+      xaxis: { 
+        type: 'datetime', 
+        labels: { 
+          format: "MMM 'yy",
+          style: { fontSize: '14px' },
+          offsetX: -10 // Shift labels to the left
+        },
+        tickAmount: 13, 
+        range: new Date('2025-12-31').getTime() - new Date('2025-01-01').getTime() // Extend range to include December
+      },
+      yaxis: {
+        labels: {
+          formatter: v => '$' + v.toLocaleString(),
+          style: { fontSize: '14px' } // Increase font size for Y-axis labels
+        },
+        title: {
+          text: 'Revenue ($)',
+          style: { fontSize: '16px' } // Add and increase font size for Y-axis title
+        }
+      },
+      tooltip: {
+        shared: true,
+        x: { format: 'dd MMM yyyy' },
+        y: { formatter: v => '$' + v.toLocaleString() }
+      },
+      dataLabels: {
+        enabled: true, // Enable data labels
+        formatter: function (val) {
+          return '$' + val.toLocaleString(); // Format as currency
+        },
+        style: {
+          fontSize: '12px',
+          //colors: ['#000'] // Set label color
+        }
+      },
+      annotations: {
+        xaxis: [
+          { 
+            x: events.freemiumLaunch, 
+            label: { 
+              text: 'Launched freemium', 
+              style: { background: '#FFECB3', color: '#5D4037', fontSize: '14px' } // Pastel yellow with dark brown text
+            }, 
+            borderColor: '#FFECB3' 
+          },
+          { 
+            x: events.schoolStart[0], 
+            x2: events.schoolStart[1], 
+            fillColor: 'rgba(255, 152, 102, 0.50)', // Darker pastel orange fill
+            label: { 
+              text: 'School Starts', 
+              style: { background: '#FFAB91', color: '#5D4037', fontSize: '14px' } // Slightly darker pastel orange
+            } 
+          },
+          { 
+            x: events.blackFriday[0], 
+            x2: events.blackFriday[1], 
+            fillColor: 'rgba(144, 202, 249, 0.60)', // Darker pastel blue fill
+            label: { 
+              text: 'Black Friday Promo', 
+              style: { background: '#90CAF9', color: '#1A237E', fontSize: '14px' } // Slightly darker pastel blue
+            } 
+          }
+        ],
+        yaxis: [
+          { 
+            y: 25000, 
+            borderColor: '#FFB74D', // Complementary pastel orange
+            strokeDashArray: 4, // Dash-dot line style
+            label: { 
+              text: 'Monthly Goal $25k', 
+              style: { background: '#FFE0B2', color: '#5D4037', fontSize: '14px' } // Pastel orange with dark brown text
+            } 
+          },
+          { 
+            y: 24000, 
+            y2: 28000, 
+            fillColor: 'rgba(129, 199, 132, 0.40)', // Darker pastel green fill
+            label: { 
+              text: 'Target Range', 
+              style: { background: '#81C784', color: '#1B5E20', fontSize: '14px' } // Slightly darker pastel green
+            } 
+          }
+        ],
+        points: [
+          {
+            x: new Date("2025-03-01").getTime(),
+            y: outageY, //23450,
+            marker: {
+              size: 8,
+              fillColor: '#FFFFFF',
+              strokeColor: '#FFCDD2', // Pastel red outline
+              strokeWidth: 4,
+              radius: 2,
+              offsetY: -20,
+            },
+            label: {
+              text: 'Outage → churn spike',
+              borderColor: '#FFCDD2',
+              offsetY: -18,
+              style: { background: '#FFCDD2', color: '#B71C1C', fontSize: '14px' } // Pastel red with dark red text
             }
-        </style>
-        <style>
-.task-list-item {
-    list-style-type: none;
-}
+          }
+        ]
+      },
+      plotOptions: {
+        line: {
+          colors: {
+            threshold: 25000, // Set the threshold to $25,000
+            colorAboveThreshold: '#10B981', // Green for values above $25,000
+            colorBelowThreshold: '#EF4444' // Red for values below $25,000
+          }
+        }
+      },
+    });
 
-.task-list-item-checkbox {
-    margin-left: -20px;
-    vertical-align: middle;
-    pointer-events: none;
-}
-</style>
-<style>
-:root {
-  --color-note: #0969da;
-  --color-tip: #1a7f37;
-  --color-warning: #9a6700;
-  --color-severe: #bc4c00;
-  --color-caution: #d1242f;
-  --color-important: #8250df;
-}
-
-</style>
-<style>
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-note: #2f81f7;
-    --color-tip: #3fb950;
-    --color-warning: #d29922;
-    --color-severe: #db6d28;
-    --color-caution: #f85149;
-    --color-important: #a371f7;
-  }
-}
-
-</style>
-<style>
-.markdown-alert {
-  padding: 0.5rem 1rem;
-  margin-bottom: 16px;
-  color: inherit;
-  border-left: .25em solid #888;
-}
-
-.markdown-alert>:first-child {
-  margin-top: 0
-}
-
-.markdown-alert>:last-child {
-  margin-bottom: 0
-}
-
-.markdown-alert .markdown-alert-title {
-  display: flex;
-  font-weight: 500;
-  align-items: center;
-  line-height: 1
-}
-
-.markdown-alert .markdown-alert-title .octicon {
-  margin-right: 0.5rem;
-  display: inline-block;
-  overflow: visible !important;
-  vertical-align: text-bottom;
-  fill: currentColor;
-}
-
-.markdown-alert.markdown-alert-note {
-  border-left-color: var(--color-note);
-}
-
-.markdown-alert.markdown-alert-note .markdown-alert-title {
-  color: var(--color-note);
-}
-
-.markdown-alert.markdown-alert-important {
-  border-left-color: var(--color-important);
-}
-
-.markdown-alert.markdown-alert-important .markdown-alert-title {
-  color: var(--color-important);
-}
-
-.markdown-alert.markdown-alert-warning {
-  border-left-color: var(--color-warning);
-}
-
-.markdown-alert.markdown-alert-warning .markdown-alert-title {
-  color: var(--color-warning);
-}
-
-.markdown-alert.markdown-alert-tip {
-  border-left-color: var(--color-tip);
-}
-
-.markdown-alert.markdown-alert-tip .markdown-alert-title {
-  color: var(--color-tip);
-}
-
-.markdown-alert.markdown-alert-caution {
-  border-left-color: var(--color-caution);
-}
-
-.markdown-alert.markdown-alert-caution .markdown-alert-title {
-  color: var(--color-caution);
-}
-
-</style>
-        
-        </head>
-        <body class="vscode-body vscode-light">
-            <h1 id="data-storytelling-best-practices-for-engaging-visualizations">Data Storytelling: Best Practices for Engaging Visualizations</h1>
-<p>Data storytelling is the art of combining data, visuals, and narrative to communicate insights effectively. A well-crafted data story not only informs but also engages the audience, making complex information accessible and actionable. In this blog, we’ll explore best practices for data storytelling, using techniques demonstrated in the <code>Data-Storytelling.html</code> project.</p>
-<hr>
-<h2 id="1-start-with-a-clear-narrative">1. <strong>Start with a Clear Narrative</strong></h2>
-<p>Every data story should have a purpose. Define the key message you want to convey and structure your visualization to support it. For example, in the <code>Data-Storytelling.html</code> project, the narrative focuses on revenue trends and key events like product launches, outages, and seasonal promotions.</p>
-<h3 id="best-practice">Best Practice:</h3>
-<ul>
-<li>Identify the main question your data answers.</li>
-<li>Use annotations to highlight critical events or thresholds, such as a freemium launch or a revenue target.</li>
-</ul>
-<hr>
-<h2 id="2-use-annotations-to-highlight-key-insights">2. <strong>Use Annotations to Highlight Key Insights</strong></h2>
-<p>Annotations are powerful tools for drawing attention to specific data points or trends. In the project, annotations were used to:</p>
-<ul>
-<li>Mark the freemium launch date.</li>
-<li>Highlight the impact of a site outage on revenue.</li>
-<li>Show seasonal trends like back-to-school and Black Friday promotions.</li>
-</ul>
-<h3 id="best-practice-1">Best Practice:</h3>
-<ul>
-<li>Use annotations sparingly to avoid clutter.</li>
-<li>Combine annotations with meaningful labels and colors for better context.</li>
-</ul>
-<hr>
-<h2 id="3-incorporate-thresholds-and-conditional-formatting">3. <strong>Incorporate Thresholds and Conditional Formatting</strong></h2>
-<p>Thresholds help audiences quickly understand performance relative to a target. In the project, a $25,000 revenue goal was visualized with:</p>
-<ul>
-<li>A dashed line to represent the target.</li>
-<li>Conditional formatting to color the line green above the threshold and red below it.</li>
-</ul>
-<h3 id="best-practice-2">Best Practice:</h3>
-<ul>
-<li>Use contrasting colors to differentiate performance above and below the threshold.</li>
-<li>Ensure the threshold is visually distinct, such as using a dashed or dotted line.</li>
-</ul>
-<hr>
-<h2 id="4-leverage-gradients-and-area-charts-for-context">4. <strong>Leverage Gradients and Area Charts for Context</strong></h2>
-<p>Gradients and area charts provide additional context by showing the magnitude of data. In the project:</p>
-<ul>
-<li>A light green gradient was applied to the area above the $25,000 threshold, emphasizing success.</li>
-<li>The area chart type was used to highlight cumulative trends.</li>
-</ul>
-<h3 id="best-practice-3">Best Practice:</h3>
-<ul>
-<li>Use gradients to subtly emphasize positive trends or thresholds.</li>
-<li>Avoid overly bright or distracting colors that can detract from the story.</li>
-</ul>
-<hr>
-<h2 id="5-make-data-interactive">5. <strong>Make Data Interactive</strong></h2>
-<p>Interactive charts allow users to explore data at their own pace. The project included:</p>
-<ul>
-<li>A toolbar for zooming, panning, and downloading the chart.</li>
-<li>Tooltips to display detailed information for specific data points.</li>
-</ul>
-<h3 id="best-practice-4">Best Practice:</h3>
-<ul>
-<li>Include interactive elements like zoom and tooltips to enhance engagement.</li>
-<li>Ensure interactivity is intuitive and doesn’t overwhelm the user.</li>
-</ul>
-<hr>
-<h2 id="6-embed-data-responsibly">6. <strong>Embed Data Responsibly</strong></h2>
-<p>In the project, data was embedded directly into the HTML using a <code>&lt;script&gt;</code> tag with <code>type=&quot;application/json&quot;</code>. This approach avoids CORS issues and ensures the data is tightly coupled with the visualization.</p>
-<h3 id="best-practice-5">Best Practice:</h3>
-<ul>
-<li>Use embedded JSON for small datasets to simplify deployment.</li>
-<li>For larger datasets, consider fetching data from an API or external file.</li>
-</ul>
-<hr>
-<h2 id="7-focus-on-accessibility">7. <strong>Focus on Accessibility</strong></h2>
-<p>Accessibility ensures your data story reaches a broader audience. In the project:</p>
-<ul>
-<li>Font sizes were adjusted for readability.</li>
-<li>Contrasting colors were used for annotations and thresholds.</li>
-</ul>
-<h3 id="best-practice-6">Best Practice:</h3>
-<ul>
-<li>Use high-contrast colors for text and visuals.</li>
-<li>Ensure the chart is responsive and readable on different screen sizes.</li>
-</ul>
-<hr>
-<h2 id="conclusion">Conclusion</h2>
-<p>Data storytelling is a blend of art and science. By combining clear narratives, thoughtful design, and interactive elements, you can create visualizations that not only inform but also inspire action. The techniques demonstrated in the <code>Data-Storytelling.html</code> project provide a solid foundation for crafting engaging data stories.</p>
-<p>Start your next data storytelling project by focusing on the story you want to tell, and let the data guide your design choices. Happy storytelling!</p>
-
-            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
-            
-        </body>
-        </html>
+    chart.render();
+  </script>
+</body>
+</html>
