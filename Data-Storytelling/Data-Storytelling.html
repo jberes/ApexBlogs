@@ -101,10 +101,9 @@
         labels: { 
           format: "MMM 'yy",
           style: { fontSize: '14px' },
-          offsetX: -10 // Shift labels to the left
         },
-        tickAmount: 13, 
-        range: new Date('2025-12-31').getTime() - new Date('2025-01-01').getTime() // Extend range to include December
+        //tickAmount: 13, 
+        //range: new Date('2025-12-31').getTime() - new Date('2025-01-01').getTime() // Extend range to include December
       },
       yaxis: {
         labels: {
@@ -211,7 +210,6 @@
         }
       },
     });
-
     chart.render();
   </script>
 </body>
